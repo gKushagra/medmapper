@@ -1,0 +1,76 @@
+<div class="d-flex flex-row w-100">
+    <div class="d-flex flex-column w-100">
+        <div class="w-100">
+            <h3 class="text-white p-2">MED MAPPER - SCAN</h3>
+        </div>
+        <div class="w-100">
+            <div id="barcodereader"></div>
+        </div>
+        <table class="table table-sm text-white w-100 mt-2">
+            <thead>
+                <tr>
+                    <th scope="col">#</th>
+                    <th scope="col">Barcode</th>
+                    <th scope="col">QOH</th>
+                </tr>
+            </thead>
+            <tbody id="table-body"></tbody>
+        </table>
+        <div class="w-100">
+            <button id="save" type="button" class="btn btn-primary">Save</button>
+        </div>
+    </div>
+</div>
+<script type="text/javascript">
+    let urlParams = new URLSearchParams(window.location.search);
+    let sid = urlParams.get('sid');
+    var qohInputs = [], serial = 0, toSave = [];
+    const tbodyEl = document.getElementById('table-body');
+    const saveBtn = document.getElementById('save');
+    saveBtn.addEventListener('click', function (event) {
+        saveBtn.disabled = true;
+        for (let i = 0; i < qohInputs.length; i++) {
+            console.log(qohInputs[i], { barcode: qohInputs[i].getAttribute('data-bc'), qoh: qohInputs[i].value });
+            let payload = { barcode: qohInputs[i].getAttribute('data-bc'), qoh: qohInputs[i].value };
+            fetch(`/scans/${sid}`, { method: 'PUT', body: JSON.stringify(payload), headers: { 'Content-Type': 'application/json' } })
+                .then(res => res.json())
+                .then(data => console.log("saved " + i, data))
+                .catch(err => console.err(err));
+        }
+        qohInputs = [];
+        saveBtn.disabled = false;
+    });
+    const barcodeReader = document.getElementById('barcodereader');
+    function onScanSuccess(decodedText, decodedResult) {
+        //console.log(`Code ${decodedText}`, decodedResult);
+        const formattedBarcode = `${decodedText.slice(0, 4)}-${decodedText.slice(4, 8)}-${decodedText.slice(8, 10)}`;
+        const trEl = tableRow(++serial, formattedBarcode);
+        tbodyEl.appendChild(trEl);
+    }
+    function onScanFailure(error) { }
+    //function onScanFailure(error) {
+    //    console.warn(`Scan error`, error);
+    //}
+    const Html5CodeScanner = new Html5QrcodeScanner("barcodereader", { fps: 10, qrbox: 250 });
+    Html5CodeScanner.render(onScanSuccess, onScanFailure);
+    function tableRow(serial, barcode) {
+        let tr = document.createElement('tr');
+        tr.id = serial;
+        let td1 = document.createElement('td');
+        td1.innerText = serial;
+        let td2 = document.createElement('td');
+        td2.innerText = barcode;
+        td2.setAttribute('data-bc', barcode);
+        let td3 = document.createElement('td');
+        let input = document.createElement('input');
+        input.type = 'number';
+        input.id = `${serial}-input`;
+        input.setAttribute('data-bc', barcode);
+        qohInputs.push(input);
+        td3.appendChild(input);
+        tr.appendChild(td1);
+        tr.appendChild(td2);
+        tr.appendChild(td3);
+        return tr;
+    }
+</script>
