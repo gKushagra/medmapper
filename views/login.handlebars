@@ -1,0 +1,48 @@
+<div class="d-flex flex-row justify-content-center w-100">
+    <form action="/login" method="POST" enctype="application/x-www-form-urlencoded"
+        class="w-25 mr-auto ml-auto mt-3 mb-3">
+        {{#if error}}
+        <small class="text-danger mb-2">Invalid Username or Password</small>
+        {{/if}}
+        <div class="form-outline mb-4">
+            <label for="username" class="text-white">USERNAME</label>
+            <input type="test" id="username" name="username" class="form-control bg-dark text-white" required />
+        </div>
+        <div class="form-outline mb-4">
+            <label for="password" class="text-white">PASSWORD</label>
+            <input type="password" id="password" name="password" class="form-control bg-dark text-white" required />
+        </div>
+        {{!-- <div class="row mb-4">
+            <div class="col d-flex justify-content-center">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" value="" id="form2Example31" checked />
+                    <label class="form-check-label" for="form2Example31"> Remember me </label>
+                </div>
+            </div>
+
+            <div class="col">
+                <a href="#!">Forgot password?</a>
+            </div>
+        </div> --}}
+        <button type="submit" class="btn btn-success btn-block mb-4">Sign in</button>
+        {{!-- <div class="text-center">
+            <p>Not a member? <a href="#!">Register</a></p>
+            <p>or sign up with:</p>
+            <button type="button" class="btn btn-link btn-floating mx-1">
+                <i class="fab fa-facebook-f"></i>
+            </button>
+
+            <button type="button" class="btn btn-link btn-floating mx-1">
+                <i class="fab fa-google"></i>
+            </button>
+
+            <button type="button" class="btn btn-link btn-floating mx-1">
+                <i class="fab fa-twitter"></i>
+            </button>
+
+            <button type="button" class="btn btn-link btn-floating mx-1">
+                <i class="fab fa-github"></i>
+            </button>
+        </div> --}}
+    </form>
+</div>
