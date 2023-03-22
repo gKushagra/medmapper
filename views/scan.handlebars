@@ -30,7 +30,6 @@
     saveBtn.addEventListener('click', function (event) {
         saveBtn.disabled = true;
         for (let i = 0; i < qohInputs.length; i++) {
-            console.log(qohInputs[i], { barcode: qohInputs[i].getAttribute('data-bc'), qoh: qohInputs[i].value });
             let payload = { barcode: qohInputs[i].getAttribute('data-bc'), qoh: qohInputs[i].value };
             fetch(`/scans/${sid}`, { method: 'PUT', body: JSON.stringify(payload), headers: { 'Content-Type': 'application/json' } })
                 .then(res => res.json())

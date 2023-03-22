@@ -1,6 +1,21 @@
 {{> nav }}
 <div class="d-flex flex-row w-100">
-    <div class="d-flex flex-column">
+    <div class="w-75 p-2">
+        <table class="table table-sm text-white">
+            <thead>
+                <tr>
+                    <th scope="col">NDC</th>
+                    <th scope="col">NAME</th>
+                    <th scope="col">TYPE</th>
+                    <th scope="col">MANUFACTURER</th>
+                    <th scope="col">QOH</th>
+                    <th scope="col">ACTIONS</th>
+                </tr>
+            </thead>
+            <tbody id="table-body"></tbody>
+        </table>
+    </div>
+    <div class="w-25 d-flex flex-column align-items-center">
         <div id="qrcode" data-link={{data.link}} class="p-4 border-black rounded"></div>
         <button id="copytoclipboard" type="button" data-link={{data.link}}
             class="mx-4 my-4 mt-2 mb-2 p-2 text-white bg-primary border-0 rounded" onclick="copyContent()">
@@ -23,5 +38,91 @@
         } catch (error) {
             console.error(error);
         }
+    }
+    var items = [], saveBtns = [];
+    const url = new URL(clipboardEl.getAttribute('data-link'));
+    const sid = url.searchParams.get('sid')
+    setInterval(() => {
+        fetch(`/scans/sessions/${sid}/barcodes?index=${items.length}`)
+            .then(res => res.json())
+            .then(data => appendData(data))
+            .catch(err => console.warn(err));
+    }, 5000);
+    function appendData(data) {
+        if (data && data.length > 0) {
+            items = items.concat(data);
+            console.log(items);
+            for (let i = 0; i < data.length; i++) {
+                addTableRow(i, data[i]);
+                let uri = `https://api.fda.gov/drug/ndc.json?search=product_ndc="${data[i].barcode}"`;
+                fetch(uri)
+                    .then(res => res.json())
+                    .then(ndc => {
+                        if (!('results' in ndc) || !ndc.results[0]) return;
+                        items[i]['generic_name'] = ndc.results[0]['generic_name'];
+                        items[i]['product_type'] = ndc.results[0]['product_type'];
+                        items[i]['manufacturer_name'] = ndc.results[0]['manufacturer_name'];
+                        updateColumns(i, ndc.results[0]);
+                    })
+                    .catch(err => console.warn(err));
+            }
+        }
+    }
+    function addTableRow(index, data) {
+        const tableBodyEl = document.getElementById('table-body');
+        let tr = document.createElement('tr');
+        let td1 = document.createElement('td');
+        td1.innerText = data.barcode;
+        tr.appendChild(td1);
+        let td2 = document.createElement('td');
+        td2.id = `generic-name_${index}`;
+        td2.innerText = 'n/a';
+        tr.appendChild(td2);
+        let td3 = document.createElement('td');
+        td3.id = `product-type_${index}`;
+        td3.innerText = 'n/a';
+        tr.appendChild(td3);
+        let td4 = document.createElement('td');
+        td4.id = `manufacturer-name_${index}`;
+        td4.innerText = 'n/a';
+        tr.appendChild(td4);
+        let td5 = document.createElement('td');
+        td5.innerText = data.qoh;
+        tr.appendChild(td5);
+        let td6 = document.createElement('td');
+        let btn = document.createElement('button');
+        btn.id = `${index}`;
+        btn.innerText = 'Save';
+        saveBtns.push(btn);
+        saveBtns[saveBtns.length - 1].addEventListener('click', function (event) {
+            var idx = parseInt(event.target.id);
+            fetch('/inventory', {
+                method: 'PUT',
+                body: JSON.stringify({
+                    //id: '00000000-0000-0000-0000-000000000000',
+                    product_ndc: items[idx]['barcode'],
+                    generic_name: 'generic_name' in items[idx] ? items[idx]['generic_name'] : 'n/a',
+                    product_type: 'product_type' in items[idx] ? items[idx]['product_type'] : 'n/a',
+                    manufacturer_name: 'manufacturer_name' in items[idx] ? items[idx]['manufacturer_name'] : 'n/a',
+                    quantity_on_hand: items[idx]['qoh'],
+                    last_updated: new Date()
+                }),
+                headers: { 'Content-Type': 'application/json' }
+            })
+                .then(res => res.json())
+                .then(data => {
+                    event.target.disabled = true;
+                    event.target.innerHTML = 'Saved &check;';
+                })
+                .catch(err => console.warn(err));
+        });
+        td6.appendChild(btn);
+        tr.appendChild(td6);
+        tableBodyEl.appendChild(tr);
+    }
+    function updateColumns(index, data) {
+        document.getElementById(`generic-name_${index}`).innerText = data.generic_name;
+        document.getElementById(`product-type_${index}`).innerText = data.product_type;
+        document.getElementById(`manufacturer-name_${index}`).innerText = dat.manufacturer_name;
     }
 </script>

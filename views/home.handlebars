@@ -1,17 +1,25 @@
-{{> nav  }}
-<table class="table table-sm text-white">
-    <thead>
-        <tr>
-            <th scope="col">#</th>
-            <th scope="col">Barcode</th>
-            <th scope="col">QOH</th>
-        </tr>
-    </thead>
-    <tbody id="table-body">
-        <tr>
-            <th scope="row">1</th>
-            <td>000-000-000</td>
-            <td>Example</td>
-        </tr>
-    </tbody>
-</table>
+{{> nav }}
+<div class="w-100 p-3">
+    <table class="table table-sm text-white w-100">
+        <thead>
+            <tr>
+                <th scope="col">NDC</th>
+                <th scope="col">NAME</th>
+                <th scope="col">TYPE</th>
+                <th scope="col">MANUFACTURER</th>
+                <th scope="col">QOH</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{#each items}}
+            <tr>
+                <td>{{ product_ndc }}</td>
+                <td>{{ generic_name }}</td>
+                <td>{{ product_type }}</td>
+                <td>{{ manufacturer_name }}</td>
+                <td>{{ quantity_on_hand }}</td>
+            </tr>
+            {{/each}}
+        </tbody>
+    </table>
+</div>

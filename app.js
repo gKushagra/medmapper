@@ -3,6 +3,7 @@ const express = require('express');
 const { engine } = require('express-handlebars');
 const { v4: UUID } = require('uuid');
 const cookieParser = require('cookie-parser');
+const Inventory = require('./models/Inventory');
 const knex = require('knex')({
     client: 'pg',
     connection: config.PG_CONNECTION_STRING
@@ -73,7 +74,7 @@ app.get('/home', checkAuthorization, function (req, res, next) {
         .from('inventory')
         .then(data => {
             console.log(data, req.cookies);
-            res.render('home');
+            res.render('home', { items: data });
         })
         .catch(error => res.status(500).json(error));
 });
@@ -87,8 +88,12 @@ app.get('/scans/link', checkAuthorization, function (req, res, next) {
         // .andWhere('status', '=', false)
         .then(data => {
             let curr = new Date();
-            if (data && data.length > 0 && (+curr <= +data[0].expiry)) {
-                return res.render('link', { data: data[0] });
+            if (data && data.length > 0) {
+                for (let i = 0; i < data.length; i++) {
+                    if (+curr <= +data[i].expiry) {
+                        return res.render('link', { data: data[i] });
+                    }
+                }
             } else {
                 let date = new Date();
                 const newSession = {
@@ -111,16 +116,6 @@ app.get('/scans/link', checkAuthorization, function (req, res, next) {
             console.error(error);
             res.redirect('/');
         });
-});
-
-/* GET scan sessions */
-app.get('/scans/session', checkAuthorization, function (req, res, next) {
-    knex
-        .select('*')
-        .from('scan_item')
-        .where('scan_session_id', '=', req.params.Id)
-        .then(data => res.status(200).json(data))
-        .catch(error => res.status(500).json(error));
 });
 
 app.get('/scan', function (req, res, next) {
@@ -156,13 +151,20 @@ app.get('/scans/:Id', function (req, res, next) {
 });
 
 /* GET scanned barcodes */
-app.get('/scans/:Id', function (req, res, next) {
+app.get('/scans/sessions/:Id/barcodes', function (req, res, next) {
+    const index = parseInt(req.query.index);
     knex
         .select('*')
         .from('scan_item')
         .where('scan_session_id', '=', req.params.Id)
-        .then(data => res.status(200).json(data))
-        .catch(error => res.status(500).json(error));
+        .then(data => {
+            if (data && data[0] && (data.length > index)) {
+                return res.status(200).json(data.slice(index, data.length));
+            }
+        })
+        .catch(error => {
+            console.error(error);
+        });
 });
 
 /* PUT scanned barcodes */
@@ -183,28 +185,29 @@ app.put('/scans/:Id', function (req, res, next) {
 
 /* PUT scanned items */
 app.put('/inventory', function (req, res, next) {
-    const fieldsToInsert = req.body.map(field => ({
-        id: uuid(),
-        product_ndc: field.ProductNdc,
-        generic_name: field.GenericName,
-        brand_name: field.BrandName,
-        active_ingredients: field.ActiveIngredients,
-        package_ndc: field.PackageNdc,
-        product_id: field.ProductId,
-        product_type: field.ProductType,
-        dosage_form: field.DosageForm,
-        manufacturer_name: field.ManufacturerName,
-        quantity_on_hand: field.QuantityOnHand,
-        max_level: field.MaxLevel,
-        reorder_level: field.ReorderLevel,
-        last_updated: Date.now(),
-        package_description: field.PackageDescription,
-        item_barcode: field.ItemBarcode
-    }));
-    knex('inventory')
-        .insert(fieldsToInsert)
-        .then(success => res.status(200).json(success))
-        .catch(error => res.status(500).json(error));
+    const { product_ndc, generic_name, product_type, manufacturer_name, quantity_on_hand, last_updated } = req.body;
+    var inventoryItem = new Inventory(UUID(), product_ndc, generic_name, product_type, manufacturer_name, quantity_on_hand, last_updated);
+    knex
+        .select('*')
+        .from('inventory')
+        .where('product_ndc', '=', inventoryItem.product_ndc)
+        .andWhere('quantity_on_hand', '=', inventoryItem.quantity_on_hand)
+        .then(data => {
+            if (data && data.length > 0) {
+                res.status(200).json('exists');
+            } else {
+                knex('inventory')
+                    .insert(inventoryItem)
+                    .then(data => res.status(200).json("created"))
+                    .catch(error => {
+                        throw new Error(error);
+                    });
+            }
+        })
+        .catch(error => {
+            console.log(error);
+            res.render('error', { error: '500 Internal Server Error' })
+        });
 });
 
 app.listen(config.PORT, function () { console.info('MedMapper app running on PORT : ' + config.PORT) });
