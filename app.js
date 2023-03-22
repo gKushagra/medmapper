@@ -6,7 +6,14 @@ const cookieParser = require('cookie-parser');
 const Inventory = require('./models/Inventory');
 const knex = require('knex')({
     client: 'pg',
-    connection: config.PG_CONNECTION_STRING
+    // connection: config.PG_CONNECTION_STRING
+    connection: {
+        host: config.CONNECTION.HOST,
+        port: config.CONNECTION.PORT,
+        user: config.CONNECTION.USER,
+        password: config.CONNECTION.PASSWORD,
+        database: config.CONNECTION.DATABASE
+    }
 });
 
 const app = express();
@@ -53,7 +60,6 @@ app.post('/login', function (req, res, next) {
         .from('users')
         .where('username', '=', username)
         .then(data => {
-            console.log(data);
             if (data && data[0] && password === data[0].password) {
                 res.cookie('userId', data[0].id);
                 res.redirect('/home');
