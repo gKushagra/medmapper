@@ -9,7 +9,7 @@ RUN apk update && apk add curl bash && rm -rf /var/cache/apk/*
 WORKDIR /usr/src/app
 
 COPY package.json ./
-COPY views ./views
+COPY /views ./
 
 # install dependencies
 RUN npm install
@@ -27,14 +27,14 @@ RUN npm prune --production
 
 # remove unused dependencies
 
-FROM node:12-alpine
+FROM node:16-alpine
 
 WORKDIR /usr/src/app
 
 # copy from build image
 COPY --from=BUILD_IMAGE /usr/src/app/dist ./dist
-COPY --from=BUILD_IMAGE /usr/src/app/views ./dist/views
 COPY --from=BUILD_IMAGE /usr/src/app/node_modules ./node_modules
+COPY --from=BUILD_IMAGE /usr/src/app/views ./views
 
 EXPOSE 7651
 
